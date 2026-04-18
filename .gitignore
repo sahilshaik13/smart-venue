@@ -1,0 +1,47 @@
+# --- SECURITY: SECRETS & KEYS ---
+secrets/
+*.env
+*.env.development
+*.env.production
+*.env.local
+*.json
+!package.json
+!tsconfig.json
+!hitex_calibration_*.json
+!composer.json
+
+# --- SYSTEM & OS ---
+.DS_Store
+Thumbs.db
+*.swp
+*.log
+
+# --- PYTHON ---
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# --- NODE / FRONTEND ---
+node_modules/
+.next/
+dist/
+build/
+.cache/
+
+# --- AI & AGENTS ---
+.agents/
+.gemini/
+*.zip
+plan/
+scratch/
+walkthrough/
+task.md
+implementation_plan.md
+research_notes.md
+system_audit.md
+[ARTIFACT]*
+
+data/

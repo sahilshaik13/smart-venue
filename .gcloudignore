@@ -1,0 +1,19 @@
+# General ignores
+secrets/
+*.env
+*.env.*
+*.json
+!package.json
+!tsconfig.json
+
+# Local Environment
+node_modules/
+venv/
+__pycache__/
+
+# Git & AI
+.git
+.agents/
+.gemini/
+plan/
+scratch/
