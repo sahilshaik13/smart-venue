@@ -1,4 +1,3 @@
-import React from 'react';
 
 // Images served from Google Cloud Storage (excluded from git for repo size compliance)
 const GCS = 'https://storage.googleapis.com/smartvenue-hitex-assets';

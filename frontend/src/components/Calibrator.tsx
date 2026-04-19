@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { MapSection } from './MapSection';
 import { GraphSection } from './GraphSection';
 import type { VenueSnapshot, Zone } from '../types';

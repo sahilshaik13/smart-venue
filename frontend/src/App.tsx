@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { VenueSnapshot } from './types';
 import { HeatmapSection } from './components/HeatmapSection';
 import { WaitTimesSection } from './components/WaitTimesSection';
