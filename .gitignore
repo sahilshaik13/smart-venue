@@ -26,6 +26,19 @@ backend/app/resources/wait_time_model.pkl
 hero_patterns.json
 backend/app/resources/hero_patterns.json
 
+# --- LARGE IMAGES (>1MB) — Excluded to keep repo under 10MB submission limit ---
+# Host these on Cloud Storage / CDN instead
+hitex/
+frontend/public/assets/maps/
+frontend/public/assets/hall1.png
+frontend/public/assets/hall4.png
+frontend/src/assets/hero.png
+*.jpg
+*.jpeg
+# Allow small SVG icons
+!frontend/public/favicon.svg
+!frontend/src/assets/vite.svg
+
 # --- JSON (except config files) ---
 *.json
 !package.json
