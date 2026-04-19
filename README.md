@@ -83,14 +83,41 @@ gcloud run deploy smartvenue-backend \
 - **Auto-pan** — camera moves to critical congestion zones autonomously during high-severity events
 - 25 GPS-accurate zone markers (all referenced from the Aug 2025 HITEX Blueprint)
 
-### 4. 🔑 Cloud Build — Container Image CI/CD
+### 4. 🔨 Cloud Build — Container Image CI/CD
 > **Used automatically by `gcloud run deploy --source .`** to build Docker images.
 
 - Builds the **FastAPI backend** (Python 3.10, Uvicorn) Dockerfile
-- Builds the **Vite + Nginx frontend** Dockerfile (SPA with runtime env injection)
+- Builds the **Vite + Nginx frontend** Dockerfile — `.env.production` is supplied via `.gcloudignore` so Vite bakes vars at build time without ever committing secrets to git
 - Images stored in **Artifact Registry** (`us-central1-docker.pkg.dev/prompt-wars-493709/`)
 
-### 5. 🔒 Google OAuth2 via Supabase Auth
+### 5. 🪣 Cloud Storage — Static Asset CDN (`smartvenue-hitex-assets`)
+> **Hosts all large venue images** outside of git, keeping the repository under the 10 MB submission limit.
+
+| Object | Size | Public URL |
+|---|---|---|
+| `maps/HITEX_Hall_01_Layout_page-0001.jpg` | 2.4 MB | [View](https://storage.googleapis.com/smartvenue-hitex-assets/maps/HITEX_Hall_01_Layout_page-0001.jpg) |
+| `maps/HITEX_Hall_02_Layout_page-0001.jpg` | 5.1 MB | [View](https://storage.googleapis.com/smartvenue-hitex-assets/maps/HITEX_Hall_02_Layout_page-0001.jpg) |
+| `maps/HITEX_Hall_03_Layout_page-0001.jpg` | 2.4 MB | [View](https://storage.googleapis.com/smartvenue-hitex-assets/maps/HITEX_Hall_03_Layout_page-0001.jpg) |
+| `maps/HITEX_Hall_04_Layout_page-0001.jpg` | 9.0 MB | [View](https://storage.googleapis.com/smartvenue-hitex-assets/maps/HITEX_Hall_04_Layout_page-0001.jpg) |
+| `maps/Hitex_Layout_Aug_2025.jpg` | 2.5 MB | [View](https://storage.googleapis.com/smartvenue-hitex-assets/maps/Hitex_Layout_Aug_2025.jpg) |
+| `assets/hall1.png`, `assets/hall4.png` | ~1.6 MB | Hall thumbnails |
+
+**Config:** Uniform bucket-level access · `allUsers` → `roles/storage.objectViewer` (public read) · Region: `us-central1`
+
+```bash
+# Upload new images
+gcloud storage cp your-image.jpg gs://smartvenue-hitex-assets/maps/
+# Immediately available at:
+# https://storage.googleapis.com/smartvenue-hitex-assets/maps/your-image.jpg
+```
+
+Frontend renders images via `FloorplansGallery.tsx`:
+```ts
+const GCS = 'https://storage.googleapis.com/smartvenue-hitex-assets';
+{ src: `${GCS}/maps/HITEX_Hall_04_Layout_page-0001.jpg` }
+```
+
+### 6. 🔒 Google OAuth2 via Supabase Auth
 > **User authentication** using Google as the identity provider.
 
 - OAuth2 flow with `supabase-js` client — users sign in with Google
