@@ -1,10 +1,13 @@
 import React from 'react';
 
+// Images served from Google Cloud Storage (excluded from git for repo size compliance)
+const GCS = 'https://storage.googleapis.com/smartvenue-hitex-assets';
+
 const FLOORS = [
-  { id: 'hall1', src: '/assets/maps/HITEX_Hall_01_Layout_page-0001.jpg', title: 'Hall 1 Blueprint' },
-  { id: 'hall2', src: '/assets/maps/HITEX_Hall_02_Layout_page-0001.jpg', title: 'Hall 2 Blueprint' },
-  { id: 'hall3', src: '/assets/maps/HITEX_Hall_03_Layout_page-0001.jpg', title: 'Hall 3 Blueprint' },
-  { id: 'hall4', src: '/assets/maps/HITEX_Hall_04_Layout_page-0001.jpg', title: 'Hall 4 Blueprint' },
+  { id: 'hall1', src: `${GCS}/maps/HITEX_Hall_01_Layout_page-0001.jpg`, title: 'Hall 1 Blueprint' },
+  { id: 'hall2', src: `${GCS}/maps/HITEX_Hall_02_Layout_page-0001.jpg`, title: 'Hall 2 Blueprint' },
+  { id: 'hall3', src: `${GCS}/maps/HITEX_Hall_03_Layout_page-0001.jpg`, title: 'Hall 3 Blueprint' },
+  { id: 'hall4', src: `${GCS}/maps/HITEX_Hall_04_Layout_page-0001.jpg`, title: 'Hall 4 Blueprint' },
 ];
 
 export const FloorplansGallery: React.FC = () => {
