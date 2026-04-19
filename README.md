@@ -15,14 +15,23 @@ Live crowd simulation · Dijkstra navigation · Gemini 2.5 Flash AI · Google Ma
 
 ---
 
-## 🌐 Live Production
+## 🌐 Live Production Endpoints
 
-| Service | URL | Status |
+> All services are deployed on **Google Cloud Run** — `us-central1` region.
+
+| Service | Direct URL | Description |
 |---|---|---|
-| **Dashboard (Frontend UI)** | [smartvenue-frontend-623281650123.us-central1.run.app](https://smartvenue-frontend-623281650123.us-central1.run.app) | ✅ Live |
-| **Intelligence Engine (API)** | [smartvenue-backend-623281650123.us-central1.run.app](https://smartvenue-backend-623281650123.us-central1.run.app) | ✅ Live |
-| **Swagger API Docs** | [/docs](https://smartvenue-backend-623281650123.us-central1.run.app/docs) | ✅ Live |
-| **Health Monitor** | [/health](https://smartvenue-backend-623281650123.us-central1.run.app/health) | ✅ Live |
+| 🖥️ **Live Dashboard** | **[smartvenue-frontend-623281650123.us-central1.run.app](https://smartvenue-frontend-623281650123.us-central1.run.app)** | Full React UI — Maps, D3 Graph, AI Chat |
+| ⚙️ **Intelligence Engine API** | **[smartvenue-backend-623281650123.us-central1.run.app](https://smartvenue-backend-623281650123.us-central1.run.app)** | FastAPI backend — WebSocket + REST |
+| 📋 **Swagger API Docs** | [smartvenue-backend-623281650123.us-central1.run.app/docs](https://smartvenue-backend-623281650123.us-central1.run.app/docs) | Interactive API explorer |
+| 💚 **Health Monitor** | [smartvenue-backend-623281650123.us-central1.run.app/health](https://smartvenue-backend-623281650123.us-central1.run.app/health) | Subsystem status — database, simulator, model |
+| 🗺️ **Live Heatmap Data** | [smartvenue-backend-623281650123.us-central1.run.app/api/maps/heatmap](https://smartvenue-backend-623281650123.us-central1.run.app/api/maps/heatmap) | GeoJSON crowd density feed |
+
+```bash
+# Quick health check — returns subsystem status live
+curl https://smartvenue-backend-623281650123.us-central1.run.app/health
+# {"status":"ok","subsystems":{"database":"ok","simulator":"ok","prediction_model":"ok"}}
+```
 
 ---
 
@@ -374,10 +383,65 @@ See [`backend/.env.example`](./backend/.env.example) and [`frontend/.env.example
 
 ---
 
+## 📊 Datasets, Attribution & Copyright
+
+### Venue Topology — HITEX Exhibition Center
+
+The spatial data, zone layout, gate positions, and walkway distances used in this project are derived from the **publicly available site map and exhibitor floor plan** of the HITEX Exhibition Center, Hyderabad, India.
+
+> **HITEX Exhibition Center™** is a trademark and property of the **Hyderabad International Trade Expositions Ltd. (HITEX)**.
+> All venue names, gate identifiers, hall numbers, and geographic references in this project are used solely for **academic, research, and hackathon demonstration purposes** and are not affiliated with or endorsed by HITEX.
+> The 25-node topology calibrated to the Aug 2025 HITEX Blueprint is a **best-effort Digital Twin model** — it is a simulation and does not represent actual real-time data from the venue.
+
+### ML Training Dataset — Wait Time Model
+
+The `wait_time_model.pkl` (434 MB RandomForest) was trained on a **synthetically generated dataset** constructed using the following methodology:
+
+| Component | Source / Method |
+|---|---|
+| **Zone layout & capacities** | Derived from the HITEX public floor plan (room dimensions, stated visitor capacity) |
+| **Crowd flow patterns** | Synthetic trajectories modeled on published crowd dynamics research (see below) |
+| **Wait time ground truth** | Simulated using queuing theory (M/M/c model) at entry gates and halls |
+| **Event themes & phases** | Parameterized from historical HITEX public event schedules (2022–2024) |
+| **Congestion multipliers** | Calibrated against peer-reviewed pedestrian simulation studies |
+
+**No personally identifiable information (PII), private operator data, or proprietary HITEX system data was used.** The dataset is entirely synthetic and algorithmically generated.
+
+### Research References
+
+The simulation and ML pipeline draws on the following publicly available research:
+
+- Helbing, D. & Molnár, P. (1995). *Social force model for pedestrian dynamics.* Physical Review E, 51(5), 4282. — Crowd flow model basis
+- Daamen, W. & Hoogendoorn, S. (2003). *Experimental research of pedestrian walking behavior.* Transportation Research Record, 1828. — Walking speed calibration
+- Still, G.K. (2000). *Crowd Dynamics.* PhD Thesis, University of Warwick. — Venue crowd distribution modeling
+- Singh, H. et al. (2009). *Modelling subgroup behaviour in crowd dynamics DEM simulation.* Applied Mathematical Modelling, 33(12). — Gaussian scatter model
+
+### License & Usage
+
+```
+Copyright © 2025 SmartVenue Intelligence Engine Contributors
+
+This software is released for academic and hackathon demonstration purposes.
+The venue topology model is an independent work inspired by publicly available
+architectural information and does not constitute a commercial product or
+a claim over HITEX's intellectual property.
+
+The synthetic training dataset was generated by the project authors and is
+released under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.
+The source code is released under the MIT License.
+
+HITEX Exhibition Center™ is a registered trademark of Hyderabad International
+Trade Expositions Ltd. All references are for identification purposes only.
+```
+
+---
+
 <div align="center">
 
 *SmartVenue Intelligence Engine · Built for the Gemini Prompt Wars Hackathon · HITEX Digital Twin 🦾🏁*
 
 **Powered by** · Vertex AI · Cloud Run · Google Maps Platform · Cloud Build · Google OAuth2
+
+📍 Venue: HITEX Exhibition Center, Hyderabad, India &nbsp;|&nbsp; 🧠 AI: Gemini 2.5 Flash &nbsp;|&nbsp; ☁️ Infra: Google Cloud Run
 
 </div>
