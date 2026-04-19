@@ -21,32 +21,19 @@ function App() {
   const [wsConnected, setWsConnected] = useState(false);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-          setSession(session);
-          setLoading(false);
-        } else if (event === 'SIGNED_OUT') {
-          // Only sign out if we're not in the middle of an OAuth code exchange
-          const hasOAuthCode = window.location.search.includes('code=');
-          if (!hasOAuthCode) {
-            setSession(null);
-            setLoading(false);
-          } else {
-            // Unstick the UI if a failed code exchange leaves ?code= dangling
-            window.history.replaceState({}, document.title, window.location.pathname);
-            setSession(null);
-            setLoading(false);
-          }
-        } else if (event === 'TOKEN_REFRESHED') {
-          setSession(session);
-        }
+      (_event, session) => {
+        setSession(session);
+        setLoading(false);
       }
     );
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   // 📡 High-Speed WebSocket Real-time Stream
@@ -106,15 +93,12 @@ function App() {
   };
 
   const handleLogin = () => {
-    // Directly clear just the auth token to prevent refresh loops without
-    // invoking the full async signOut pipeline that could race with signIn.
     localStorage.removeItem('sb-vxwcunzabawnahjctlxi-auth-token');
     
     supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + '/',
-        queryParams: { access_type: 'offline', prompt: 'select_account' },
+        redirectTo: window.location.origin,
       },
     });
   };
