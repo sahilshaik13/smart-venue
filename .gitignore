@@ -1,12 +1,38 @@
-# --- SECURITY: SECRETS & KEYS ---
+# ============================================================
+# SMARTVENUE .gitignore — Security & Size Hardened
+# ============================================================
+
+# --- SECURITY: ALL SECRETS & KEYS (NEVER COMMIT) ---
 secrets/
-*.env
-*.env.development
-*.env.production
-*.env.local
+.env
+.env.*
+.env.development
+.env.production
+.env.local
+*.local
+env_vars.yaml
+
+# --- LARGE MODEL FILES (use GCS, not Git) ---
+*.pkl
+*.pickle
+*.h5
+*.pt
+*.pth
+*.onnx
+*.gguf
+backend/app/resources/wait_time_model.pkl
+
+# --- LARGE DATA FILES ---
+hero_patterns.json
+backend/app/resources/hero_patterns.json
+
+# --- JSON (except config files) ---
 *.json
 !package.json
+!package-lock.json
 !tsconfig.json
+!tsconfig.app.json
+!tsconfig.node.json
 !hitex_calibration_*.json
 !composer.json
 
