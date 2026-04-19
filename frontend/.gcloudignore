@@ -1,19 +1,31 @@
-# General ignores
-secrets/
-*.env
-*.env.*
-*.json
-!package.json
-!tsconfig*.json
+# .gcloudignore — controls what gcloud run deploy --source . uploads to Cloud Build.
+# Based on .gitignore but explicitly ALLOWS .env.production so Vite can read it
+# at build time inside the Docker container.
+# NOTE: .env.production is NOT in git. It lives locally and is uploaded only to
+# Cloud Build. It is never pushed to GitHub.
 
-# Local Environment
+# Node
 node_modules/
-venv/
-__pycache__/
+dist/
+.cache/
 
-# Git & AI
-.git
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.log
+
+# Env files — EXCEPT production (needed by Vite at Cloud Build time)
+.env
+.env.local
+.env.development
+.env.test
+# .env.production  ← intentionally NOT excluded; Cloud Build needs this
+
+# Git
+.git/
+.gitignore
+
+# Agents / IDE
 .agents/
 .gemini/
-plan/
-scratch/
