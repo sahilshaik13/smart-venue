@@ -21,22 +21,22 @@ function App() {
   const [wsConnected, setWsConnected] = useState(false);
 
   useEffect(() => {
-    // Safety timeout — if no auth event fires within 3s, unblock the UI
-    const safetyTimeout = setTimeout(() => setLoading(false), 3000);
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
           setSession(session);
           setLoading(false);
-          clearTimeout(safetyTimeout);
         } else if (event === 'SIGNED_OUT') {
           // Only sign out if we're not in the middle of an OAuth code exchange
           const hasOAuthCode = window.location.search.includes('code=');
           if (!hasOAuthCode) {
             setSession(null);
             setLoading(false);
-            clearTimeout(safetyTimeout);
+          } else {
+            // Unstick the UI if a failed code exchange leaves ?code= dangling
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setSession(null);
+            setLoading(false);
           }
         } else if (event === 'TOKEN_REFRESHED') {
           setSession(session);
@@ -46,7 +46,6 @@ function App() {
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(safetyTimeout);
     };
   }, []);
 
@@ -106,10 +105,11 @@ function App() {
     setRefreshTrigger(Date.now());
   };
 
-  const handleLogin = async () => {
-    // Sign out any stale cached session first — prevents expired refresh tokens
-    // from firing 401 → SIGNED_OUT and overwriting the fresh SIGNED_IN event.
-    await supabase.auth.signOut({ scope: 'local' });
+  const handleLogin = () => {
+    // Directly clear just the auth token to prevent refresh loops without
+    // invoking the full async signOut pipeline that could race with signIn.
+    localStorage.removeItem('sb-vxwcunzabawnahjctlxi-auth-token');
+    
     supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
