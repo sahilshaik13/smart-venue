@@ -21,13 +21,16 @@ function App() {
   const [wsConnected, setWsConnected] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+    // onAuthStateChange fires INITIAL_SESSION on mount and SIGNED_IN when
+    // Supabase parses the #access_token hash from the OAuth redirect.
+    // We use it as the single source of truth — do NOT setLoading(false) in
+    // getSession(), because getSession() resolves before the hash is parsed.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setLoading(false);  // Only mark ready once we have a definitive answer
+      }
+    );
     return () => subscription.unsubscribe();
   }, []);
 
@@ -88,9 +91,12 @@ function App() {
   };
 
   const handleLogin = () => {
-    supabase.auth.signInWithOAuth({ 
+    supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin }
+      options: {
+        redirectTo: window.location.origin + '/',
+        queryParams: { access_type: 'offline', prompt: 'consent' },
+      }
     });
   };
 
