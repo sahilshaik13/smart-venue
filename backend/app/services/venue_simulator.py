@@ -9,54 +9,9 @@ from typing import Dict, List, Tuple, Any
 from app.models import VenueSnapshot, ZoneStatus, ZoneType
 from app.services.webhook_manager import webhook_manager
 from app.services.prediction_service import prediction_service
+from app.utils.spatial_utils import THEME_MATRICES, calculate_crowd_level, generate_random_particles
 
 log = structlog.get_logger(__name__)
-
-# THEME_MATRICES remains as the procedural logic layer
-THEME_MATRICES = {
-    "marathon": {
-        "gate_main": 88, "gate_g1": 72, "gate_g2": 40, "gate_g3": 36, "gate_g4": 20, "gate_g5": 80, "gate_west": 28,
-        "hall_1": 8, "hall_2": 4, "hall_3": 12, "hall_4": 8,
-        "area_fairpark": 76, "area_vpe": 44, "area_tradefair": 16, "area_parking_tf": 60, "area_plaza": 68,
-        "area_lake": 32, "area_parking_open": 72, "area_parking_p1": 80, "area_parking_p2": 64, "area_aeros": 52,
-        "area_west_arena": 56, "area_security": 48, "area_service_1": 24, "area_service_2": 20
-    },
-    "hackathon": {
-        "gate_main": 76, "gate_g1": 48, "gate_g2": 32, "gate_g3": 20, "gate_g4": 8, "gate_g5": 28, "gate_west": 8,
-        "hall_1": 88, "hall_2": 72, "hall_3": 56, "hall_4": 80,
-        "area_fairpark": 16, "area_vpe": 52, "area_tradefair": 36, "area_parking_tf": 40, "area_plaza": 44,
-        "area_lake": 12, "area_parking_open": 36, "area_parking_p1": 48, "area_parking_p2": 28, "area_aeros": 84,
-        "area_west_arena": 20, "area_security": 32, "area_service_1": 20, "area_service_2": 16
-    },
-    "expo": {
-        "gate_main": 92, "gate_g1": 84, "gate_g2": 76, "gate_g3": 68, "gate_g4": 40, "gate_g5": 72, "gate_west": 32,
-        "hall_1": 96, "hall_2": 88, "hall_3": 84, "hall_4": 92,
-        "area_fairpark": 60, "area_vpe": 72, "area_tradefair": 80, "area_parking_tf": 76, "area_plaza": 88,
-        "area_lake": 24, "area_parking_open": 80, "area_parking_p1": 84, "area_parking_p2": 72, "area_aeros": 76,
-        "area_west_arena": 68, "area_security": 56, "area_service_1": 60, "area_service_2": 52
-    },
-    "music_festival": {
-        "gate_main": 96, "gate_g1": 88, "gate_g2": 64, "gate_g3": 48, "gate_g4": 24, "gate_g5": 84, "gate_west": 40,
-        "hall_1": 20, "hall_2": 32, "hall_3": 44, "hall_4": 24,
-        "area_fairpark": 52, "area_vpe": 80, "area_tradefair": 20, "area_parking_tf": 68, "area_plaza": 72,
-        "area_lake": 36, "area_parking_open": 92, "area_parking_p1": 88, "area_parking_p2": 80, "area_aeros": 68,
-        "area_west_arena": 96, "area_security": 80, "area_service_1": 36, "area_service_2": 28
-    },
-    "awards": { 
-        "gate_main": 84, "gate_g1": 72, "gate_g2": 56, "gate_g3": 32, "gate_g4": 12, "gate_g5": 52, "gate_west": 16,
-        "hall_1": 92, "hall_2": 88, "hall_3": 72, "hall_4": 76,
-        "area_fairpark": 44, "area_vpe": 36, "area_tradefair": 48, "area_parking_tf": 52, "area_plaza": 64,
-        "area_lake": 16, "area_parking_open": 60, "area_parking_p1": 68, "area_parking_p2": 52, "area_aeros": 72,
-        "area_west_arena": 24, "area_security": 40, "area_service_1": 28, "area_service_2": 20
-    },
-    "startup_summit": {
-        "gate_main": 80, "gate_g1": 60, "gate_g2": 44, "gate_g3": 24, "gate_g4": 16, "gate_g5": 44, "gate_west": 20,
-        "hall_1": 68, "hall_2": 92, "hall_3": 72, "hall_4": 84,
-        "area_fairpark": 20, "area_vpe": 68, "area_tradefair": 52, "area_parking_tf": 60, "area_plaza": 56,
-        "area_lake": 16, "area_parking_open": 52, "area_parking_p1": 60, "area_parking_p2": 44, "area_aeros": 80,
-        "area_west_arena": 28, "area_security": 44, "area_service_1": 32, "area_service_2": 24
-    }
-}
 
 class SimulatorEngine:
     def __init__(self):
@@ -116,6 +71,10 @@ class SimulatorEngine:
         self.last_rotation_time = time.time()
 
     def generate_snapshot(self, theme: str = None, situation: str = None, severity: str = None) -> VenueSnapshot:
+        """
+        Generates a full spatial snapshot of the venue using the specified simulation parameters.
+        Scopes generation to user-specific themes for sandbox isolation.
+        """
         active_theme = (theme or self.theme).lower()
         active_situation = (situation or self.situation).lower()
         active_severity = (severity or self.severity).lower()
@@ -126,19 +85,11 @@ class SimulatorEngine:
         zones = []
         for zid, zname, ztype, cap, lat, lng in self.zone_data:
             base_perc = matrix.get(zid, 8)
-            if active_situation == "morning_entry":
-                if "gate" in zid or "parking" in zid: base_perc = min(99, base_perc * 1.2)
-                else: base_perc *= 0.6
-            elif active_situation == "closing":
-                if "gate" in zid or "parking" in zid: base_perc = min(99, base_perc * 1.3)
-                else: base_perc *= 0.4
-            
-            crowd_lvl = (base_perc / 100.0) * sev_mult
-            jitter = random.uniform(-0.02, 0.02)
-            crowd_lvl = min(0.99, max(0.01, crowd_lvl + jitter))
+            crowd_lvl = calculate_crowd_level(base_perc, active_situation, zid, sev_mult)
             
             pred_wait = prediction_service.predict_wait_time(active_theme, active_situation, ztype, crowd_lvl)
             trend = "rising" if crowd_lvl > 0.7 else "falling" if crowd_lvl < 0.2 else "stable"
+            
             zones.append(ZoneStatus(
                 zone_id=zid, name=zname, type=ztype, capacity=cap,
                 current_count=int(cap * crowd_lvl), crowd_level=crowd_lvl,
@@ -146,7 +97,8 @@ class SimulatorEngine:
                 predicted_wait_time=pred_wait, trend=trend, confidence=0.92, lat=lat, lng=lng
             ))
 
-        particles = []
+        # Generate spatial particles for the gravity visualization
+        particles = generate_random_particles(17.470, 78.375, 40)
         # Radius mapping
         SCATTER_CONFIG = {
             "hall_1": 0.0007, "hall_2": 0.0007, "hall_3": 0.0008, "hall_4": 0.0009,

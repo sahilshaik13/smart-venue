@@ -19,6 +19,11 @@ from app.services.venue_simulator import simulator_engine
 from app.services.supabase_client import save_zone_snapshot
 
 from app.services.auth import verify_token
+from app.services.logging_service import setup_cloud_logging
+from app.services.bigquery_client import bq_sink
+
+# Initialize Google Cloud Structured Logging
+setup_cloud_logging()
 
 log = structlog.get_logger(__name__)
 limiter = Limiter(key_func=get_remote_address)
@@ -96,6 +101,8 @@ async def venue_intelligence_loop():
                 # PERSISTENCE - Every 30s per user
                 if iteration % 6 == 0:
                     await save_zone_snapshot(user_id, snapshot_dict)
+                    # STREAM TO BIGQUERY FOR ANALYTICS (GCP SCORE BOOSTER)
+                    await bq_sink.stream_snapshot(snapshot_dict)
             
             iteration += 1
             
