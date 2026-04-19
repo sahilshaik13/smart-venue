@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Response
 import time
 from app.services.venue_simulator import simulator_engine
-from app.services.supabase_client import supabase
+from app.services.supabase_client import get_supabase
 
 router = APIRouter(tags=["health"])
 _startup_time = time.time()
@@ -11,8 +11,9 @@ async def health_check(response: Response):
     # Check Subsystems
     db_status = "ok"
     try:
-        # Quick check if supabase client is initialized
-        if not supabase: db_status = "error"
+        client = get_supabase()
+        if not client:
+            db_status = "error"
     except Exception:
         db_status = "error"
         
