@@ -9,52 +9,50 @@ D3 force-directed graph.  Gemini uses the text summary for Graph RAG.
 from __future__ import annotations
 
 import structlog
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from typing import Any
 
 from app.cache import AsyncTTLCache
 from app.dependencies import get_cache, get_snapshot
+from app.models import VenueSnapshot
 from app.services.graph_builder import build_venue_graph, graph_to_dict
 
 log = structlog.get_logger(__name__)
 router = APIRouter(tags=["graph"])
 
-CACHE_KEY = "venue_graph"
-
+CACHE_KEY_BASE = "venue_graph"
 
 @router.get(
     "/api/graph",
     response_model=dict,
     summary="Venue Knowledge Graph",
-    description=(
-        "Returns a node-edge knowledge graph of all venue zones and physical "
-        "walkway connections. Edge weights represent live crowd-flow volume. "
-        "Inspired by GitNexus — Graph RAG for physical spaces."
-    ),
 )
 async def get_venue_graph(
+    request: Request,
+    snapshot: VenueSnapshot = Depends(get_snapshot),
     cache: AsyncTTLCache = Depends(get_cache),
 ) -> dict[str, Any]:
     """
     Build and return the venue knowledge graph.
-
-    Nodes  = venue zones (gates, concessions, restrooms, seating)
-    Edges  = physical walkways weighted by live crowd-flow volume
+    Scoped by user_id to ensure private sandbox data.
     """
-    cached = await cache.get(CACHE_KEY)
+    # Use user-specific cache key
+    user_id = getattr(request.state, "user_id", "anonymous")
+    cache_key = f"{CACHE_KEY_BASE}_{user_id}"
+    
+    cached = await cache.get(cache_key)
     if cached:
-        log.info("graph_cache_hit")
+        log.info("graph_cache_hit", user_id=user_id)
         return cached
 
-    snapshot = await get_snapshot(cache)
     graph = build_venue_graph(snapshot)
     result = graph_to_dict(graph)
 
-    await cache.set(CACHE_KEY, result)
+    await cache.set(cache_key, result)
     log.info(
         "graph_built",
+        user_id=user_id,
         nodes=len(graph.nodes),
         edges=len(graph.edges),
-        critical_zones=len(graph.critical_paths),
     )
     return result

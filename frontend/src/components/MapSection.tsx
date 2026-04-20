@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { 
   APIProvider, 
   Map, 
@@ -25,12 +25,20 @@ const getStatusColor = (status: string) => {
 
 const MapHandler = ({ zones }: { zones: Zone[] }) => {
   const map = useMap();
+  const hasInitialized = useRef(false);
+
   useEffect(() => {
-    const criticalZone = zones.find(z => z.status === 'critical');
-    if (criticalZone && criticalZone.lat && criticalZone.lng && map) {
-      map.panTo({ lat: criticalZone.lat, lng: criticalZone.lng });
-    }
-  }, [zones, map]);
+    if (hasInitialized.current || !map || zones.length === 0) return;
+    
+    // Initial zoom to fit all zones
+    const bounds = new google.maps.LatLngBounds();
+    zones.forEach(z => {
+      if (z.lat && z.lng) bounds.extend({ lat: z.lat, lng: z.lng });
+    });
+    map.fitBounds(bounds);
+    hasInitialized.current = true;
+  }, [map, zones]);
+  
   return null;
 };
 
@@ -42,10 +50,7 @@ const ParticleLayer = ({ particles }: { particles?: Particle[] }) => {
       {particles.map(p => (
         <AdvancedMarker
           key={p.id}
-          position={{ 
-            lat: p.y, 
-            lng: p.x 
-          }}
+          position={{ lat: p.y, lng: p.x }}
           collisionBehavior="OPTIONAL_AND_HIDES_LOWER_PRIORITY"
         >
           <div style={{
@@ -65,10 +70,13 @@ const ParticleLayer = ({ particles }: { particles?: Particle[] }) => {
 };
 
 export const MapSection: React.FC<MapSectionProps> = ({ zones, particles }) => {
-  const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
   const center = { lat: 17.4720, lng: 78.3740 }; // HITEX Core
+
+  // Get live data for selected zone
+  const selectedZone = zones.find(z => z.zone_id === selectedZoneId);
 
   return (
     <section id="map-section" className="card map-section">
@@ -81,7 +89,7 @@ export const MapSection: React.FC<MapSectionProps> = ({ zones, particles }) => {
          </div>
       </div>
       
-      <div style={{ flex: 1, width: '100%', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
+      <div id="map-container" style={{ flex: 1, width: '100%', borderRadius: '12px', overflow: 'visible', position: 'relative', minHeight: '600px' }}>
         <APIProvider apiKey={apiKey}>
           <Map
             defaultCenter={center}
@@ -91,13 +99,13 @@ export const MapSection: React.FC<MapSectionProps> = ({ zones, particles }) => {
             gestureHandling={'greedy'}
             tilt={45}
             heading={0}
+            style={{ width: '100%', height: '100%' }}
           >
             <MapHandler zones={zones} />
             <ParticleLayer particles={particles} />
             
             {zones.map(z => {
               if (!z.lat || !z.lng) return null;
-// ... rest of marker logic ...
               const color = getStatusColor(z.status);
               
               return (
@@ -105,7 +113,7 @@ export const MapSection: React.FC<MapSectionProps> = ({ zones, particles }) => {
                   key={z.zone_id}
                   position={{ lat: z.lat, lng: z.lng }}
                   draggable={false}
-                  onClick={() => setSelectedZone(z)}
+                  onClick={() => setSelectedZoneId(z.zone_id)}
                 >
                   <div style={{
                     position: 'relative',
@@ -120,7 +128,7 @@ export const MapSection: React.FC<MapSectionProps> = ({ zones, particles }) => {
                     border: '3px solid white',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease-out',
-                    transform: selectedZone?.zone_id === z.zone_id ? 'scale(1.2)' : 'scale(1)',
+                    transform: selectedZoneId === z.zone_id ? 'scale(1.2)' : 'scale(1)',
                     pointerEvents: 'auto'
                   }}>
                     {z.status === 'critical' && (
@@ -162,13 +170,14 @@ export const MapSection: React.FC<MapSectionProps> = ({ zones, particles }) => {
             {selectedZone && (
               <InfoWindow
                 position={{ lat: selectedZone.lat!, lng: selectedZone.lng! }}
-                onCloseClick={() => setSelectedZone(null)}
+                onCloseClick={() => setSelectedZoneId(null)}
               >
-                <div style={{ color: '#000', padding: '8px' }}>
+                <div style={{ color: '#000', padding: '8px', minWidth: '150px' }}>
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem' }}>{selectedZone.name}</h3>
                   <p style={{ margin: '0', fontSize: '0.9rem' }}>
                     <strong>Crowd:</strong> {selectedZone.current_count} / {selectedZone.capacity}<br/>
-                    <strong>Level:</strong> {(selectedZone.crowd_level * 100).toFixed(1)}%
+                    <strong>Level:</strong> {(selectedZone.crowd_level * 100).toFixed(1)}%<br/>
+                    <strong>Status:</strong> <span style={{color: getStatusColor(selectedZone.status), fontWeight: 'bold'}}>{selectedZone.status.toUpperCase()}</span>
                   </p>
                 </div>
               </InfoWindow>

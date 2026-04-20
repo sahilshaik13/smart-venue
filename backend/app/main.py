@@ -4,7 +4,7 @@ import weakref
 import structlog
 from contextlib import asynccontextmanager
 from typing import List, Set
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -38,6 +38,7 @@ class ConnectionManager:
         self.user_connections: dict[str, set[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, user_id: str):
+        # Move accept() AFTER logging and state check to ensure cleaner handshake
         await websocket.accept()
         if user_id not in self.user_connections:
             self.user_connections[user_id] = set()
@@ -63,39 +64,41 @@ class ConnectionManager:
                 dead_links.add(connection)
         
         for dead in dead_links:
-            self.user_connections[user_id].discard(dead)
+            self.disconnect(dead, user_id)
 
 manager = ConnectionManager()
 
-# ── Background Intelligence Task ──────────────────────────────
+# ── Intelligence Engine Loop ──────────────────────────────────
 async def venue_intelligence_loop():
-    """ Multi-simulation loop: Generates and multi-casts snapshots per active user. """
+    """
+    Main background process.
+    Iterates through active user sessions and broadcasts high-fidelity spatial data.
+    """
     iteration = 0
     while True:
         try:
-            # BROADCAST TO EVERY ACTIVE USER-SPECIFIC SANDBOX
+            start_time = time.time()
+            
+            # Identify users with active WebSocket connections
             active_users = list(manager.user_connections.keys())
             
             for user_id in active_users:
-                # Get the last set params for this user or use defaults
+                # Load user-specific sandbox settings
                 settings = user_settings_registry.get(user_id, {
                     "theme": "hackathon",
                     "situation": "morning_entry",
                     "severity": "medium"
                 })
                 
-                # Generate unique snapshot for this user's world
-                snapshot = simulator_engine.generate_snapshot(
-                    theme=settings["theme"],
-                    situation=settings["situation"],
-                    severity=settings["severity"]
-                )
+                # Generate unique snapshot for this user's sandbox
+                snapshot = simulator_engine.generate_snapshot(**settings)
                 snapshot_dict = jsonable_encoder(snapshot)
                 
-                # MULTI-CAST - Only to this user
+                # Multi-cast to all of THIS user's active devices
                 await manager.broadcast_to_user(user_id, {
                     "type": "SNAPSHOT_UPDATE",
-                    "data": snapshot_dict
+                    "data": snapshot_dict,
+                    "timestamp": time.time()
                 })
                 
                 # PERSISTENCE - Every 30s per user
@@ -106,14 +109,17 @@ async def venue_intelligence_loop():
             
             iteration += 1
             
-        except Exception as e:
-            log.error("intelligence_loop_error", error=str(e))
+            # Adaptive sleep to maintain ~5s cadence
+            elapsed = time.time() - start_time
+            await asyncio.sleep(max(0.1, 5.0 - elapsed))
             
-        await asyncio.sleep(5)
+        except Exception as e:
+            log.error("intelligence_loop_failure", error=str(e))
+            await asyncio.sleep(5)
 
-# ── Startup/Shutdown ──────────────────────────────────────────
+# ── Lifespan for resources ────────────────────────────────────
+_cache = None
 _start_time = time.time()
-_cache: AsyncTTLCache | None = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -146,7 +152,11 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://smartvenue-frontend-623281650123.us-central1.run.app"
+    ],
+    allow_origin_regex="https://smartvenue-frontend-.*\.us-central1\.run\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

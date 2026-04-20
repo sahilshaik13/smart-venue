@@ -191,7 +191,7 @@ def build_venue_graph(snapshot: VenueSnapshot) -> VenueGraph:
 
     min_lat, max_lat = min(lats), max(lats)
     min_lng, max_lng = min(lngs), max(lngs)
-    margin = 0.1
+    margin = 0.22
     lat_range = max_lat - min_lat if max_lat != min_lat else 1.0
     lng_range = max_lng - min_lng if max_lng != min_lng else 1.0
 
@@ -199,8 +199,8 @@ def build_venue_graph(snapshot: VenueSnapshot) -> VenueGraph:
     zone_map = {z.zone_id: z for z in snapshot.zones}
 
     for z in snapshot.zones:
-        x = margin + ((z.lng - min_lng) / lng_range) * (1 - 2 * margin)
-        y = (1 - margin) - ((z.lat - min_lat) / lat_range) * (1 - 2 * margin)
+        x = (margin / 2) + ((z.lng - min_lng) / lng_range) * (1 - margin)
+        y = (1 - margin / 2) - ((z.lat - min_lat) / lat_range) * (1 - margin)
         nodes.append(GraphNode(
             id=z.zone_id, label=z.name, type=z.type,
             crowd_level=z.crowd_level, status=z.status,

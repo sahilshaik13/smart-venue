@@ -167,7 +167,11 @@ function App() {
       <main id="main-content" role="main">
         <HeatmapSection snapshot={snapshot} onZoneClick={handleZoneClick} />
         <WaitTimesSection zones={snapshot ? snapshot.zones : []} />
-        <GraphSection onZoneClick={handleZoneClick} refreshTrigger={refreshTrigger} />
+        <GraphSection 
+          onZoneClick={handleZoneClick} 
+          refreshTrigger={refreshTrigger} 
+          sessionToken={session.access_token} 
+        />
         <MapSection zones={snapshot ? snapshot.zones : []} particles={snapshot?.particles} />
         <FloorplansGallery />
       </main>

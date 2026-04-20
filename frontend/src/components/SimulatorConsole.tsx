@@ -83,35 +83,31 @@ export const SimulatorConsole: React.FC<SimulatorConsoleProps> = ({ sessionToken
   };
 
   return (
-    <div className="sim-console" style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '4px', 
-      background: 'rgba(22, 27, 39, 0.8)', 
-      backdropFilter: 'blur(10px)',
-      padding: '4px 8px', 
-      borderRadius: '8px', 
-      border: '1px solid var(--border)',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-    }}>
+    <div className="sim-console">
       <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginRight: '4px' }}>
-        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isUpdating ? 'var(--accent)' : 'var(--low)', boxShadow: isUpdating ? '0 0 8px var(--accent)' : 'none' }}></div>
+        <div style={{ 
+          width: '6px', 
+          height: '6px', 
+          borderRadius: '50%', 
+          background: isUpdating ? 'var(--accent)' : 'var(--low)', 
+          boxShadow: isUpdating ? '0 0 8px var(--accent)' : 'none' 
+        }}></div>
         <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>SIM</span>
       </div>
       
-      <select value={theme} onChange={(e) => setTheme(e.target.value)} disabled={isUpdating} style={selectStyle}>
+      <select value={theme} onChange={(e) => setTheme(e.target.value)} disabled={isUpdating}>
         {themes.map(t => <option key={t.id} value={t.id} style={{background: 'var(--surface-2)'}}>{t.label}</option>)}
       </select>
 
-      <div style={dividerStyle}></div>
+      <div className="divider"></div>
 
-      <select value={situation} onChange={(e) => setSituation(e.target.value)} disabled={isUpdating} style={selectStyle}>
+      <select value={situation} onChange={(e) => setSituation(e.target.value)} disabled={isUpdating}>
         {situations.map(s => <option key={s.id} value={s.id} style={{background: 'var(--surface-2)'}}>{s.label}</option>)}
       </select>
 
-      <div style={dividerStyle}></div>
+      <div className="divider"></div>
 
-      <select value={severity} onChange={(e) => setSeverity(e.target.value)} disabled={isUpdating} style={selectStyle}>
+      <select value={severity} onChange={(e) => setSeverity(e.target.value)} disabled={isUpdating}>
         {severities.map(s => <option key={s.id} value={s.id} style={{background: 'var(--surface-2)'}}>{s.label}</option>)}
       </select>
 
@@ -119,23 +115,19 @@ export const SimulatorConsole: React.FC<SimulatorConsoleProps> = ({ sessionToken
         onClick={handleApply}
         disabled={isUpdating}
         style={{
-          marginLeft: '8px',
+          marginLeft: '4px',
           background: 'var(--accent)',
           border: 'none',
           color: 'white',
-          fontSize: '0.68rem',
+          fontSize: '0.6rem',
           fontWeight: 700,
-          padding: '5px 10px',
+          padding: '4px 8px',
           borderRadius: '4px',
           cursor: 'pointer',
-          transition: 'all 0.2s',
           opacity: isUpdating ? 0.7 : 1,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
         }}
       >
-        {isUpdating ? 'SYNCING...' : 'IMPLEMENT'}
+        {isUpdating ? 'SYNC' : 'APPLY'}
       </button>
     </div>
   );
